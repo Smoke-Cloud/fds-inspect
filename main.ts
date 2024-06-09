@@ -4,17 +4,17 @@ import {
   type Resolution,
   summarise_input,
   verifyInput,
-} from "./../fds-inspect-core/mod.ts";
-import * as path from "jsr:@std/path";
-import Handlebars from "npm:handlebars";
+} from "jsr:@smoke-cloud/fds-inspect-core@0.1.1";
+import * as path from "jsr:@std/path@0.225.2";
+import Handlebars from "npm:handlebars@4.7.8";
 import { Command } from "jsr:@cliffy/command@1.0.0-rc.4";
-import { open } from "https://deno.land/x/open@v0.0.6/index.ts";
 import {
   summaryTableHbs,
   verificationListHbs,
   verificationPageHbs,
   verificationTableHbs,
 } from "./hbs.ts";
+import { open } from "./open.ts";
 
 await new Command()
   .name("tway-server-manager")
