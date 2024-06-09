@@ -1,0 +1,8 @@
+{
+  "name": "@smoke-cloud/fds-inspect",
+  "version": "0.1.0",
+  "exports": "./main.ts",
+  "tasks": {
+    "build": "deno run -A createHbsMods.ts"
+  }
+}

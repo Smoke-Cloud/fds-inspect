@@ -1,0 +1,7 @@
+<ul class="verification-list">
+    {{#each value }}
+    <li class="{{type}}Test test {{categoryClass type}}" onclick="toggle_visibility(arguments[0],this);">
+        {{> verificationTable this}}
+    </li>
+    {{/each}}
+</ul>

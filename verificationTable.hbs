@@ -1,0 +1,18 @@
+{{#if value.message}}
+<div>
+    <strong>
+        {{name}}
+    </strong>
+    <span class="{{type}}">
+        {{renderCategory type}}</span>:
+    {{value.message}}
+</div>
+{{else}}
+<div>
+    <strong>
+        {{name}}
+    </strong><span class="{{type}}">
+        {{renderCategory type}}</span>:
+</div>
+{{> verificationList this}}
+{{/if}}
