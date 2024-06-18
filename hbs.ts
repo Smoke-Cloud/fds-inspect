@@ -225,6 +225,20 @@ export const summaryTableHbs = `<table class="summary-table">
                 </ul>
             </td>
         </tr>
+        <tr>
+            <td>
+                Ceiling Heights
+            </td>
+            <td>
+                <ul>
+                    {{#each ceiling_heights }}
+                    <li>
+                        {{renderFloat height}} m {{renderFloat area}} m²
+                    </li>
+                    {{/each}}
+                </ul>
+            </td>
+        </tr>
         </tr>
     </tbody>
 </table>
