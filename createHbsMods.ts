@@ -1,4 +1,4 @@
-import * as path from "jsr:@std/path";
+import * as path from "jsr:@std/path@0.225.2";
 const files = [
   "summaryTable.hbs",
   "verificationList.hbs",
