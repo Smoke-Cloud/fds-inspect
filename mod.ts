@@ -5,7 +5,7 @@ import {
   summarise_input,
   type VerificationSummary,
   verifyInput,
-} from "jsr:@smoke-cloud/fds-inspect-core@0.1.2";
+} from "jsr:@smoke-cloud/fds-inspect-core@0.1.3";
 import Handlebars from "npm:handlebars@4.7.8";
 import {
   summaryTableHbs,
