@@ -5,7 +5,8 @@ import {
   type Resolution,
   type VerificationOutcome,
   type VerificationResult,
-} from "jsr:@smoke-cloud/fds-inspect-core@0.1.7";
+} from "jsr:@smoke-cloud/fds-inspect-core@0.1.9";
+import * as fdsInspect from "jsr:@smoke-cloud/fds-inspect-core@0.1.9";
 import * as path from "jsr:@std/path@0.225.2";
 
 export async function getJson(
@@ -36,11 +37,11 @@ export async function getJson(
 
 export async function getJsonTemp(
   inputPath: string,
-): Promise<FdsFile> {
+): Promise<fdsInspect.fds.FdsData> {
   const tempDir = await Deno.makeTempDir();
   const fn = path.basename(inputPath);
   await Deno.copyFile(inputPath, path.join(tempDir, fn));
-  return await getJson(fn, tempDir);
+  return new fdsInspect.fds.FdsData(await getJson(fn, tempDir));
 }
 
 export async function renderTypstPdf(path: string, typstInput: string) {
