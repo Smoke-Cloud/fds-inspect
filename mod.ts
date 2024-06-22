@@ -1,4 +1,4 @@
-import * as fdsInspectCore from "jsr:@smoke-cloud/fds-inspect-core@0.1.10";
+import * as fdsInspectCore from "jsr:@smoke-cloud/fds-inspect-core@0.1.11";
 import * as path from "jsr:@std/path@0.225.2";
 
 export async function getJson(
@@ -36,6 +36,32 @@ export async function getJsonTemp(
   return new fdsInspectCore.fds.FdsData(await getJson(fn, tempDir));
 }
 
+export async function getJsonSmv(
+  smvPath: string,
+  dirPath?: string,
+): Promise<fdsInspectCore.SmvData> {
+  let s;
+  try {
+    const cmd = "smvq";
+    const cwd = dirPath ?? path.dirname(smvPath);
+    const output: Deno.CommandOutput = await (new Deno.Command(cmd, {
+      args: [
+        smvPath,
+      ],
+      cwd,
+    })).output();
+    if (!output.success) {
+      throw new Error(new TextDecoder().decode(output.stderr));
+    }
+    s = new TextDecoder().decode(output.stdout);
+    const raw = JSON.parse(s);
+    return new fdsInspectCore.smv.SmvData(cwd ?? ".", raw);
+  } catch (e) {
+    console.log(`input: '${s}'`);
+    throw e;
+  }
+}
+
 export async function renderTypstPdf(path: string, typstInput: string) {
   const cmd = new Deno.Command("typst", {
     args: ["compile", "-", path],
@@ -62,6 +88,7 @@ export async function renderTypstPdf(path: string, typstInput: string) {
 export function renderVerificationTypst(
   inputSummary: fdsInspectCore.InputSummary,
   verificationSummary: fdsInspectCore.VerificationOutcome[],
+  hrrPlotFile?: string,
 ): string {
   let s = "";
   // Title
@@ -197,6 +224,15 @@ export function renderVerificationTypst(
     for (const r of verificationSummary) {
       s += renderTest(r);
     }
+  }
+  if (hrrPlotFile) {
+    s += `#figure(
+      image("${path.relative(".", hrrPlotFile)}", width: 80%),
+      caption: [
+        Realised HRR
+      ],
+    )
+    `;
   }
   return s;
 }
