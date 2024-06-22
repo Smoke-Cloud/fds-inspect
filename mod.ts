@@ -1,18 +1,10 @@
-import {
-  clearSuccessSummary,
-  type FdsFile,
-  type InputSummary,
-  type Resolution,
-  type VerificationOutcome,
-  type VerificationResult,
-} from "jsr:@smoke-cloud/fds-inspect-core@0.1.9";
-import * as fdsInspect from "jsr:@smoke-cloud/fds-inspect-core@0.1.9";
+import * as fdsInspectCore from "jsr:@smoke-cloud/fds-inspect-core@0.1.10";
 import * as path from "jsr:@std/path@0.225.2";
 
 export async function getJson(
   path: string,
   cwd?: string,
-): Promise<FdsFile> {
+): Promise<fdsInspectCore.FdsFile> {
   let s;
   try {
     const cmd = "fds-verify.cmd";
@@ -37,11 +29,11 @@ export async function getJson(
 
 export async function getJsonTemp(
   inputPath: string,
-): Promise<fdsInspect.fds.FdsData> {
+): Promise<fdsInspectCore.fds.FdsData> {
   const tempDir = await Deno.makeTempDir();
   const fn = path.basename(inputPath);
   await Deno.copyFile(inputPath, path.join(tempDir, fn));
-  return new fdsInspect.fds.FdsData(await getJson(fn, tempDir));
+  return new fdsInspectCore.fds.FdsData(await getJson(fn, tempDir));
 }
 
 export async function renderTypstPdf(path: string, typstInput: string) {
@@ -68,8 +60,8 @@ export async function renderTypstPdf(path: string, typstInput: string) {
 }
 
 export function renderVerificationTypst(
-  inputSummary: InputSummary,
-  verificationSummary: VerificationOutcome[],
+  inputSummary: fdsInspectCore.InputSummary,
+  verificationSummary: fdsInspectCore.VerificationOutcome[],
 ): string {
   let s = "";
   // Title
@@ -90,24 +82,38 @@ export function renderVerificationTypst(
   s += `  "${inputSummary.chid}",\n`;
 
   s += `  "Simulation Time",\n`;
-  s += `  [${inputSummary.simulation_length.toLocaleString("en-US")} s],\n`;
+  s += `  [${
+    inputSummary.simulation_length.toLocaleString("en-US", {
+      minimumSignificantDigits: 4,
+      maximumSignificantDigits: 6,
+    })
+  } s],\n`;
 
   s += `  "# Burners",\n`;
   s += `  [${inputSummary.n_burners}],\n`;
 
   s += `  "Total Max. HRR",\n`;
   s += `  [${
-    (inputSummary.total_max_hrr / 1000).toLocaleString("en-US")
+    (inputSummary.total_max_hrr / 1000).toLocaleString("en-US", {
+      minimumSignificantDigits: 4,
+      maximumSignificantDigits: 6,
+    })
   } kW ],\n`;
 
   s += `  [Heat of Combustion],\n`;
   s += `  [${
-    (inputSummary.heat_of_combustion / 1000 / 1000).toLocaleString("en-US")
+    (inputSummary.heat_of_combustion / 1000 / 1000).toLocaleString("en-US", {
+      minimumSignificantDigits: 4,
+      maximumSignificantDigits: 6,
+    })
   } MJ/kg ],\n`;
 
   s += `  [Total Max. Soot Production],\n`;
   s += `  [${
-    (inputSummary.total_soot_production * 1000).toLocaleString("en-US")
+    (inputSummary.total_soot_production * 1000).toLocaleString("en-US", {
+      minimumSignificantDigits: 4,
+      maximumSignificantDigits: 6,
+    })
   } g/s ],\n`;
 
   s += `  [Non-Dimensionalised Ratios],\n`;
@@ -119,7 +125,10 @@ export function renderVerificationTypst(
   s += `  [Sprinkler Activation Temperatures],\n`;
   s += `  [${
     inputSummary.sprinkler_activation_temperatures.map((c: number) =>
-      c.toFixed() + "°C"
+      c.toLocaleString("en-US", {
+        minimumSignificantDigits: 4,
+        maximumSignificantDigits: 6,
+      }) + "°C"
     ).join("\n\n")
   }],\n`;
 
@@ -129,7 +138,10 @@ export function renderVerificationTypst(
   s += `  [Smoke Detector Obscurations],\n`;
   s += `  [${
     inputSummary.smoke_detector_obscurations.map((c: number) =>
-      c.toFixed() + " %Obs/m"
+      c.toLocaleString("en-US", {
+        minimumSignificantDigits: 4,
+        maximumSignificantDigits: 6,
+      }) + " %Obs/m"
     )
       .join("\n\n")
   } ],\n`;
@@ -138,13 +150,23 @@ export function renderVerificationTypst(
   s += `  [${inputSummary.n_extract_vents}],\n`;
 
   s += `  [Total Extract Rate],\n`;
-  s += `  [${inputSummary.total_extract_rate.toFixed(2)} m³/s],\n`;
+  s += `  [${
+    inputSummary.total_extract_rate.toLocaleString("en-US", {
+      minimumSignificantDigits: 4,
+      maximumSignificantDigits: 6,
+    })
+  } m³/s],\n`;
 
   s += `  [\\# Supplies],\n`;
   s += `  [${inputSummary.n_supply_vents}],\n`;
 
   s += `  [Total Supply Rate],\n`;
-  s += `  [${inputSummary.total_supply_rate.toFixed(2)} m³/s],\n`;
+  s += `  [${
+    inputSummary.total_supply_rate.toLocaleString("en-US", {
+      minimumSignificantDigits: 4,
+      maximumSignificantDigits: 6,
+    })
+  } m³/s],\n`;
 
   s += `  [\\# Meshes],\n`;
   s += `  [${inputSummary.n_meshes}],\n`;
@@ -155,14 +177,14 @@ export function renderVerificationTypst(
   s += `  [Mesh Resolutions],\n`;
   s += `  [
     ${
-    inputSummary.mesh_resolutions.map((c: Resolution) =>
+    inputSummary.mesh_resolutions.map((c: fdsInspectCore.Resolution) =>
       `${c.dx.toFixed(3)}×${c.dy.toFixed(3)}×${c.dz.toFixed(3)} m`
     ).join("\n\n")
   }
   ],\n`;
   s += `)\n\n`;
   s += `== Failed Verification Tests\n\n`;
-  const res = clearSuccessSummary(verificationSummary);
+  const res = fdsInspectCore.clearSuccessSummary(verificationSummary);
   if (res.length > 0) {
     for (const testResult of res) {
       s += renderTest(testResult);
@@ -179,7 +201,7 @@ export function renderVerificationTypst(
   return s;
 }
 
-function renderTest(v: VerificationResult & { id: string }) {
+function renderTest(v: fdsInspectCore.VerificationResult & { id: string }) {
   if (!v) return "";
   let s = "";
   let color;
