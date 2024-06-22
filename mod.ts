@@ -1,16 +1,17 @@
 import {
   clearSuccessSummary,
+  type FdsFile,
+  type InputSummary,
+  type Resolution,
   type VerificationOutcome,
   type VerificationResult,
-} from "jsr:@smoke-cloud/fds-inspect-core@0.1.6";
-import type * as fdsInpectCore from "jsr:@smoke-cloud/fds-inspect-core@0.1.6";
-import type { InputSummary } from "../fds-inspect-core/summary.ts";
+} from "jsr:@smoke-cloud/fds-inspect-core@0.1.7";
 import * as path from "jsr:@std/path@0.225.2";
 
 export async function getJson(
   path: string,
   cwd?: string,
-): Promise<fdsInpectCore.fds.FdsFile> {
+): Promise<FdsFile> {
   let s;
   try {
     const cmd = "fds-verify.cmd";
@@ -33,7 +34,9 @@ export async function getJson(
   }
 }
 
-export async function getJsonTemp(inputPath: string) {
+export async function getJsonTemp(
+  inputPath: string,
+): Promise<FdsFile> {
   const tempDir = await Deno.makeTempDir();
   const fn = path.basename(inputPath);
   await Deno.copyFile(inputPath, path.join(tempDir, fn));
@@ -114,7 +117,7 @@ export function renderVerificationTypst(
 
   s += `  [Sprinkler Activation Temperatures],\n`;
   s += `  [${
-    inputSummary.sprinkler_activation_temperatures.map((c) =>
+    inputSummary.sprinkler_activation_temperatures.map((c: number) =>
       c.toFixed() + "°C"
     ).join("\n\n")
   }],\n`;
@@ -124,7 +127,9 @@ export function renderVerificationTypst(
 
   s += `  [Smoke Detector Obscurations],\n`;
   s += `  [${
-    inputSummary.smoke_detector_obscurations.map((c) => c.toFixed() + " %Obs/m")
+    inputSummary.smoke_detector_obscurations.map((c: number) =>
+      c.toFixed() + " %Obs/m"
+    )
       .join("\n\n")
   } ],\n`;
 
@@ -149,7 +154,7 @@ export function renderVerificationTypst(
   s += `  [Mesh Resolutions],\n`;
   s += `  [
     ${
-    inputSummary.mesh_resolutions.map((c) =>
+    inputSummary.mesh_resolutions.map((c: Resolution) =>
       `${c.dx.toFixed(3)}×${c.dy.toFixed(3)}×${c.dz.toFixed(3)} m`
     ).join("\n\n")
   }
