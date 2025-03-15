@@ -4,8 +4,14 @@ import * as path from "jsr:@std/path@0.225.2";
 export async function getJson(
   path: string,
   cwd?: string,
-): Promise<fdsInspectCore.FdsFile> {
-  let s;
+): Promise<
+  { success: true; data: fdsInspectCore.FdsFile } | {
+    success: false;
+    error: string;
+  }
+> {
+  let sOut;
+  let sErr;
   try {
     const cmd = "fds-verify.cmd";
     const output: Deno.CommandOutput = await (new Deno.Command(cmd, {
@@ -19,21 +25,39 @@ export async function getJson(
     if (!output.success) {
       throw new Error(new TextDecoder().decode(output.stderr));
     }
-    s = new TextDecoder().decode(output.stdout);
-    return JSON.parse(s);
+    sOut = new TextDecoder().decode(output.stdout);
+    sErr = new TextDecoder().decode(output.stderr);
+    try {
+      return { success: true, data: JSON.parse(sOut) };
+    } catch {
+      return { success: false, error: sErr };
+    }
   } catch (e) {
-    console.log(`input: '${s}'`);
+    console.log(`input: '${sOut}'`);
     throw e;
   }
 }
 
 export async function getJsonTemp(
   inputPath: string,
-): Promise<fdsInspectCore.fds.FdsData> {
+): Promise<
+  { success: true; data: fdsInspectCore.fds.FdsData } | {
+    success: false;
+    error: string;
+  }
+> {
   const tempDir = await Deno.makeTempDir();
   const fn = path.basename(inputPath);
   await Deno.copyFile(inputPath, path.join(tempDir, fn));
-  return new fdsInspectCore.fds.FdsData(await getJson(fn, tempDir));
+  const fdsData = await getJson(fn, tempDir);
+  if (fdsData.success) {
+    return {
+      success: true,
+      data: new fdsInspectCore.fds.FdsData(fdsData.data),
+    };
+  } else {
+    return fdsData;
+  }
 }
 
 export async function getJsonSmv(
@@ -252,5 +276,20 @@ function renderTest(v: fdsInspectCore.VerificationResult & { id: string }) {
     `#highlight(fill: ${color},bottom-edge: "descender", radius: 0.1em, extent: 0.2em)[#text(smallcaps[${v.type}])]  `;
   s += `\`${v.id}\`\n\n`;
   s += `#par(first-line-indent: 2em, hanging-indent:2em)[${v.message}]\n\n`;
+  return s;
+}
+
+export function renderTypstErrorMessage(
+  title: string,
+  errorMessage: string,
+): string {
+  let s = "";
+  s += `#set document(title: [${title}], author: "Smoke Cloud")\n\n`;
+  s += `= ${title}\n\n`;
+  s += `== Failed to Inspect Input File\n\n`;
+  s += `While tring to analyse the input file the following error occurred:`;
+  s += "```";
+  s += errorMessage;
+  s += "```";
   return s;
 }
