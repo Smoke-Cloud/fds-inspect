@@ -1,5 +1,5 @@
-import * as fdsInspectCore from "jsr:@smoke-cloud/fds-inspect-core@0.1.18";
-import * as path from "jsr:@std/path@0.225.2";
+import * as fdsInspectCore from "jsr:@smoke-cloud/fds-inspect-core@0.1.20";
+import * as path from "jsr:@std/path@1.0.8";
 
 export async function getJson(
   path: string,
