@@ -13,7 +13,8 @@ export async function getJson(
   let sOut;
   let sErr;
   try {
-    const cmd = "fds-verify.cmd";
+    const cmd = Deno.env.get("FDS_VERIFY_PATH") ??
+      (Deno.build.os === "windows" ? "fds-verify.cmd" : "fds-verify");
     const output: Deno.CommandOutput = await (new Deno.Command(cmd, {
       args: [
         path,
