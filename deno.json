@@ -1,6 +1,10 @@
 {
   "name": "@smoke-cloud/fds-inspect",
-  "version": "0.1.26",
+  "version": "0.1.27",
   "license": "AGPL-3.0-or-later",
-  "exports": "./mod.ts"
+  "exports": "./mod.ts",
+  "imports": {
+    "@smoke-cloud/fds-inspect-core": "jsr:@smoke-cloud/fds-inspect-core@^0.1.26",
+    "@std/path": "jsr:@std/path@^1.1.4"
+  }
 }
