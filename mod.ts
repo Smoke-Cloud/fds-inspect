@@ -63,7 +63,8 @@ export async function getJsonSmv(
 ): Promise<fdsInspectCore.SmvData> {
   let s;
   try {
-    const cmd = Deno.build.os === "windows" ? "smvq.cmd" : "smvq";
+    const cmd = Deno.env.get("SMVQ_PATH") ??
+      (Deno.build.os === "windows" ? "smvq.cmd" : "smvq");
     const cwd = dirPath ?? path.dirname(smvPath);
     const output: Deno.CommandOutput = await new Deno.Command(cmd, {
       args: [smvPath],
