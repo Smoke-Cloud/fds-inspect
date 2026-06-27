@@ -1,9 +1,15 @@
 import * as fdsInspectCore from "@smoke-cloud/fds-inspect-core";
 import * as path from "@std/path";
 
+export interface GetJsonOpts {
+  cwd?: string;
+  useTempFile?: boolean;
+  tempFileDir?: string;
+}
+
 export async function getJson(
   path: string,
-  cwd?: string,
+  opts?: GetJsonOpts,
 ): Promise<
   | { success: true; data: fdsInspectCore.fdsJson.FdsFile }
   | {
@@ -16,14 +22,22 @@ export async function getJson(
   try {
     const cmd = Deno.env.get("FDS_VERIFY_PATH") ??
       (Deno.build.os === "windows" ? "fds-verify.cmd" : "fds-verify");
+    let fileOut: string | undefined;
+    if (opts?.useTempFile) {
+      fileOut = await Deno.makeTempFile({ dir: opts?.tempFileDir });
+    }
     const output: Deno.CommandOutput = await new Deno.Command(cmd, {
-      args: [path, "--json", "-"],
-      cwd,
+      args: [path, "--json", fileOut ?? "-"],
+      cwd: opts?.cwd,
     }).output();
     if (!output.success) {
       throw new Error(new TextDecoder().decode(output.stderr));
     }
-    sOut = new TextDecoder().decode(output.stdout);
+    if (fileOut) {
+      sOut = await Deno.readTextFile(fileOut);
+    } else {
+      sOut = new TextDecoder().decode(output.stdout);
+    }
     sErr = new TextDecoder().decode(output.stderr);
     try {
       return { success: true, data: JSON.parse(sOut) };
@@ -36,7 +50,10 @@ export async function getJson(
   }
 }
 
-export async function getJsonTemp(inputPath: string): Promise<
+export async function getJsonTemp(
+  inputPath: string,
+  opts?: GetJsonOpts,
+): Promise<
   | { success: true; data: fdsInspectCore.fds.FdsData }
   | {
     success: false;
@@ -46,7 +63,7 @@ export async function getJsonTemp(inputPath: string): Promise<
   const tempDir = await Deno.makeTempDir();
   const fn = path.basename(inputPath);
   await Deno.copyFile(inputPath, path.join(tempDir, fn));
-  const fdsData = await getJson(fn, tempDir);
+  const fdsData = await getJson(fn, { ...opts, cwd: tempDir });
   if (fdsData.success) {
     return {
       success: true,
