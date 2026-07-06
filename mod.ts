@@ -27,7 +27,7 @@ export async function getJson(
       fileOut = await Deno.makeTempFile({ dir: opts?.tempFileDir });
     }
     const output: Deno.CommandOutput = await new Deno.Command(cmd, {
-      args: [path, "--json", fileOut ?? "-"],
+      args: [path, fileOut ?? "-"],
       cwd: opts?.cwd,
     }).output();
     if (!output.success) {
