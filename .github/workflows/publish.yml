@@ -10,7 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # The OIDC ID token is used for authentication with JSR.
+      id-token: write # The OIDC ID token is used for authentication with npm.
     steps:
       - uses: actions/checkout@v4
-      - run: npx jsr publish
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run check
+      # Only publish when the version in package.json isn't on npm yet.
+      - run: npm view "@smoke-cloud/fds-inspect@$(node -p "require('./package.json').version")" version || npm publish

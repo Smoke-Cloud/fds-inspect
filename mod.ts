@@ -1,5 +1,34 @@
+import { spawn } from "node:child_process";
+import { copyFile, mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
+import { text } from "node:stream/consumers";
 import * as fdsInspectCore from "@smoke-cloud/fds-inspect-core";
-import * as path from "@std/path";
+
+/** Run a command to completion, optionally writing `input` to its stdin. */
+async function run(
+  cmd: string,
+  args: string[],
+  opts?: { cwd?: string; input?: string },
+): Promise<{ success: boolean; stdout: string; stderr: string }> {
+  // On Windows, Node can only run .cmd/.bat files via a shell.
+  const shell = process.platform === "win32" && /\.(cmd|bat)$/i.test(cmd);
+  const child = spawn(
+    shell ? `"${cmd}"` : cmd,
+    shell ? args.map((arg) => `"${arg}"`) : args,
+    { cwd: opts?.cwd, shell },
+  );
+  child.stdin.end(opts?.input);
+  const [code, stdout, stderr] = await Promise.all([
+    new Promise<number | null>((resolve, reject) => {
+      child.on("error", reject);
+      child.on("close", resolve);
+    }),
+    text(child.stdout),
+    text(child.stderr),
+  ]);
+  return { success: code === 0, stdout, stderr };
+}
 
 export interface GetJsonOpts {
   cwd?: string;
@@ -9,7 +38,7 @@ export interface GetJsonOpts {
 }
 
 export async function getJson(
-  path: string,
+  inputPath: string,
   opts?: GetJsonOpts,
 ): Promise<
   | { success: true; data: fdsInspectCore.fdsJson.FdsFile }
@@ -21,30 +50,27 @@ export async function getJson(
   let sOut;
   let sErr;
   try {
-    const cmd = Deno.env.get("FDS_INSPECT_PATH") ??
-      (Deno.build.os === "windows" ? "fds-inspect.cmd" : "fds-inspect");
+    const cmd = process.env.FDS_INSPECT_PATH ??
+      (process.platform === "win32" ? "fds-inspect.cmd" : "fds-inspect");
     let fileOut: string | undefined;
     if (opts?.useTempFile) {
-      fileOut = await Deno.makeTempFile({ dir: opts?.tempFileDir });
+      fileOut = path.join(opts?.tempFileDir ?? tmpdir(), crypto.randomUUID());
     }
-    const args = [path, fileOut ?? "-"];
+    const args = [inputPath, fileOut ?? "-"];
     if (opts?.fdsVersion) {
       args.push("--fds-version");
       args.push(opts.fdsVersion);
     }
-    const output: Deno.CommandOutput = await new Deno.Command(cmd, {
-      args,
-      cwd: opts?.cwd,
-    }).output();
+    const output = await run(cmd, args, { cwd: opts?.cwd });
     if (!output.success) {
-      throw new Error(new TextDecoder().decode(output.stderr));
+      throw new Error(output.stderr);
     }
     if (fileOut) {
-      sOut = await Deno.readTextFile(fileOut);
+      sOut = await readFile(fileOut, "utf8");
     } else {
-      sOut = new TextDecoder().decode(output.stdout);
+      sOut = output.stdout;
     }
-    sErr = new TextDecoder().decode(output.stderr);
+    sErr = output.stderr;
     try {
       return { success: true, data: JSON.parse(sOut) };
     } catch {
@@ -66,9 +92,9 @@ export async function getJsonTemp(
     error: string;
   }
 > {
-  const tempDir = await Deno.makeTempDir();
+  const tempDir = await mkdtemp(path.join(tmpdir(), "fds-inspect-"));
   const fn = path.basename(inputPath);
-  await Deno.copyFile(inputPath, path.join(tempDir, fn));
+  await copyFile(inputPath, path.join(tempDir, fn));
   const fdsData = await getJson(fn, { ...opts, cwd: tempDir });
   if (fdsData.success) {
     return {
@@ -86,17 +112,14 @@ export async function getJsonSmv(
 ): Promise<fdsInspectCore.SmvData> {
   let s;
   try {
-    const cmd = Deno.env.get("SMVQ_PATH") ??
-      (Deno.build.os === "windows" ? "smvq.cmd" : "smvq");
+    const cmd = process.env.SMVQ_PATH ??
+      (process.platform === "win32" ? "smvq.cmd" : "smvq");
     const cwd = dirPath ?? path.dirname(smvPath);
-    const output: Deno.CommandOutput = await new Deno.Command(cmd, {
-      args: [smvPath],
-      cwd,
-    }).output();
+    const output = await run(cmd, [smvPath], { cwd });
     if (!output.success) {
-      throw new Error(new TextDecoder().decode(output.stderr));
+      throw new Error(output.stderr);
     }
-    s = new TextDecoder().decode(output.stdout);
+    s = output.stdout;
     const raw = JSON.parse(s);
     return new fdsInspectCore.smv.SmvData(cwd ?? ".", raw);
   } catch (e) {
@@ -106,25 +129,13 @@ export async function getJsonSmv(
 }
 
 export async function renderTypstPdf(path: string, typstInput: string) {
-  const cmd = new Deno.Command("typst", {
-    args: ["compile", "-", path],
-    stdin: "piped",
-    stdout: "piped",
-    stderr: "piped",
+  const output = await run("typst", ["compile", "-", path], {
+    input: typstInput,
   });
-  const child = cmd.spawn();
-  {
-    const writer = child.stdin.getWriter();
-    await writer.write(new TextEncoder().encode(typstInput));
-    writer.close();
-  }
-  const output = await child.output();
   if (output.success) {
-    const stdout = new TextDecoder().decode(output.stdout);
-    console.log(stdout);
+    console.log(output.stdout);
   } else {
-    const stderr = new TextDecoder().decode(output.stderr);
-    console.log(stderr);
+    console.log(output.stderr);
   }
 }
 
