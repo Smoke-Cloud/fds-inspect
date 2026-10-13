@@ -5,6 +5,7 @@ export interface GetJsonOpts {
   cwd?: string;
   useTempFile?: boolean;
   tempFileDir?: string;
+  fdsVersion?: string;
 }
 
 export async function getJson(
@@ -20,14 +21,19 @@ export async function getJson(
   let sOut;
   let sErr;
   try {
-    const cmd = Deno.env.get("FDS_VERIFY_PATH") ??
-      (Deno.build.os === "windows" ? "fds-verify.cmd" : "fds-verify");
+    const cmd = Deno.env.get("FDS_INSPECT_PATH") ??
+      (Deno.build.os === "windows" ? "fds-inspect.cmd" : "fds-inspect");
     let fileOut: string | undefined;
     if (opts?.useTempFile) {
       fileOut = await Deno.makeTempFile({ dir: opts?.tempFileDir });
     }
+    const args = [path, fileOut ?? "-"];
+    if (opts?.fdsVersion) {
+      args.push("--fds-version");
+      args.push(opts.fdsVersion);
+    }
     const output: Deno.CommandOutput = await new Deno.Command(cmd, {
-      args: [path, fileOut ?? "-"],
+      args,
       cwd: opts?.cwd,
     }).output();
     if (!output.success) {
